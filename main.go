@@ -19,7 +19,7 @@ import (
 var stop bool = false
 var wg sync.WaitGroup
 
-//go:embed proxies-full.txt
+//go:embed proxies.txt
 var proxies string
 var proxiesList []string
 
