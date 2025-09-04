@@ -2,4 +2,6 @@
 *.iws
 *.iml
 **/.idea/workspace.xml
+**/.idea/modules.xml
 **/.idea/tasks.xml
+**/.idea/.name
