@@ -1,4 +1,5 @@
 /build/*
 *.iws
+*.iml
 **/.idea/workspace.xml
 **/.idea/tasks.xml
