@@ -37,7 +37,7 @@ func randomIpAddress() string {
 	return net.IP(buf).String()
 }
 
-func SendRandomData(url string, payload string, threadnum int, verbose bool, aggressive bool, origin string, referer string) {
+func SendRandomData(url string, payload string, threadnum int, verbose bool, aggressive bool, origin string, referer string, useragent string) {
 	defer wg.Done()
 	if verbose && !aggressive {
 		fmt.Printf("[THREAD #%d] Starting...\n", threadnum)
@@ -57,7 +57,7 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 			req.Header.Set("origin", origin)
 		}
 		req.Header.Set("sec-ch-ua-platform", "\"Windows\"")
-		req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
+		req.Header.Set("user-agent", useragent)
 		req.Header.Set("sec-ch-ua", "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"")
 		req.Header.Set("sec-ch-ua-mobile", "?0")
 		req.Header.Set("accept", "*/*")
@@ -97,13 +97,14 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 
 }
 func main() {
-	urlPtr := flag.String("url", "", "URL to POST flood.")
-	payloadPtr := flag.String("payload", "", "Payload to send via POST flood.")
+	urlPtr := flag.String("url", "", "URL to flood with POST requests. This should be the full URL to your endpoint.")
+	payloadPtr := flag.String("payload", "", "Payload to send via POST flood. JSON is preferred unless your endpoint uses an atypical setup.")
 	originPtr := flag.String("origin", "", "(Optional) URL to value the origin header with.")
 	refererPtr := flag.String("referer", "", "(Optional) URL to value the referer header with.")
+	uaPtr := flag.String("ua", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", "(Optional) User-Agent to use for POST flooding.")
 	threadsPtr := flag.Int("threads", 16, "Number of goroutines to use.")
 	verbosePtr := flag.Bool("v", false, "Verbose output.")
-	speedModePtr := flag.Bool("a", false, "Do not log anything to console for max speed.")
+	speedModePtr := flag.Bool("a", false, "Do not log anything to console, aka maximum flood mode.")
 
 	flag.Parse()
 
@@ -117,9 +118,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("GoPOST v1.0.0 starting...")
+	fmt.Println("GoPOST v1.0.1 starting...")
 	fmt.Printf("URL: %s\n", *urlPtr)
 	fmt.Printf("Payload: %s\n", *payloadPtr)
+	if *originPtr != "" {
+		fmt.Printf("Origin: %s\n", *originPtr)
+	}
+	if *refererPtr != "" {
+		fmt.Printf("Referer: %s\n", *refererPtr)
+	}
 	fmt.Printf("Threads: %d\n", *threadsPtr)
 	fmt.Printf("Verbose: %t\n", *verbosePtr)
 	fmt.Printf("Aggressive: %t\n", *speedModePtr)
@@ -128,7 +135,7 @@ func main() {
 
 	for i := 0; i < *threadsPtr; i++ {
 		wg.Add(1)
-		go SendRandomData(*urlPtr, *payloadPtr, i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr)
+		go SendRandomData(*urlPtr, *payloadPtr, i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr, *uaPtr)
 	}
 	wg.Wait()
 }
