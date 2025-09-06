@@ -15,7 +15,6 @@ import (
 	"sync"
 )
 
-var stop bool = false
 var wg sync.WaitGroup
 
 //go:embed res/proxies.txt
@@ -34,7 +33,7 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 		log.Printf("[THREAD #%d] Starting...\n", threadnum)
 	}
 
-	for stop == false {
+	for {
 		if verbose && !aggressive {
 			log.Printf("[THREAD #%d] URL:>%s\n", threadnum, url)
 		}
@@ -89,7 +88,8 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 			}
 		}
 
-		_ = resp.Body.Close()
+		err = resp.Body.Close()
+		check(err)
 		client.CloseIdleConnections()
 	}
 
