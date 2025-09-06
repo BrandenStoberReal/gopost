@@ -4,9 +4,9 @@ import (
 	"bytes"
 	_ "embed"
 	"flag"
-	"fmt"
 	"gopost/src/helpers"
 	"io"
+	"log"
 	"net/http"
 	url2 "net/url"
 	"os"
@@ -24,25 +24,28 @@ var proxiesList []string
 
 func check(e error) {
 	if e != nil {
-		panic(e)
+		log.Fatal(e)
 	}
 }
 
 func SendRandomData(url string, payload string, threadnum int, verbose bool, aggressive bool, origin string, referer string, useragent string) {
 	defer wg.Done()
 	if verbose && !aggressive {
-		fmt.Printf("[THREAD #%d] Starting...\n", threadnum)
+		log.Printf("[THREAD #%d] Starting...\n", threadnum)
 	}
 
 	for stop == false {
 		if verbose && !aggressive {
-			fmt.Printf("[THREAD #%d] URL:>%s\n", threadnum, url)
+			log.Printf("[THREAD #%d] URL:>%s\n", threadnum, url)
 		}
 
 		if verbose && !aggressive {
-			fmt.Printf("[THREAD #%d] JSON:>%s\n", threadnum, payload)
+			log.Printf("[THREAD #%d] JSON:>%s\n", threadnum, payload)
 		}
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(payload)))
+		check(err)
+
+		// Set up headers
 		req.Header.Set("Content-Type", "application/json")
 		if origin != "" {
 			req.Header.Set("origin", origin)
@@ -61,24 +64,28 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 		req.Header.Set("accept-language", "en-US,en;q=0.9")
 		req.Header.Set("priority", "u=1, i")
 
+		// Set up proxy stuff
 		var proxy = proxiesList[helpers.RandomRange(0, len(proxiesList)-1)]
+		proxy = strings.Replace(proxy, "\r", "", -1)
 		if verbose && !aggressive {
-			fmt.Printf("[THREAD #%d] Proxy:>%s\n", threadnum, proxy)
+			log.Printf("[THREAD #%d] Proxy:>%s\n", threadnum, proxy)
 		}
 		proxyUrl, err := url2.Parse(proxy)
+		check(err)
 
+		// Init client
 		client := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 		resp, err := client.Do(req)
 		if err != nil {
-			continue
+			continue // Normally we would check this, but this usually happens due to bad proxies that are user error. We will just cycle them instead.
 		}
 
 		if !aggressive {
 			if verbose {
 				body, _ := io.ReadAll(resp.Body)
-				fmt.Printf("[THREAD #%d] Response Status: %s, Response Body: %s\n", threadnum, resp.Status, string(body))
+				log.Printf("[THREAD #%d] Response Status: %s, Response Body: %s\n", threadnum, resp.Status, string(body))
 			} else {
-				fmt.Printf("[THREAD #%d] Response Status: %s\n", threadnum, resp.Status)
+				log.Printf("[THREAD #%d] Response Status: %s\n", threadnum, resp.Status)
 			}
 		}
 
@@ -100,13 +107,11 @@ func main() {
 	flag.Parse()
 
 	if *urlPtr == "" {
-		fmt.Println("[ERROR] URL is required.")
-		os.Exit(1)
+		log.Fatal("[ERROR] URL is required.")
 	}
 
 	if *payloadPtr == "" {
-		fmt.Println("[ERROR] Payload is required.")
-		os.Exit(1)
+		log.Fatal("[ERROR] Payload is required.")
 	}
 
 	absPath, err := filepath.Abs(*payloadPtr)
@@ -115,18 +120,18 @@ func main() {
 	readPayload, err := os.ReadFile(absPath)
 	check(err)
 
-	fmt.Println("GoPOST v1.0.1 starting...")
-	fmt.Printf("URL: %s\n", *urlPtr)
-	fmt.Printf("Payload: %s\n", *payloadPtr)
+	log.Println("GoPOST v1.0.1 starting...")
+	log.Printf("URL: %s\n", *urlPtr)
+	log.Printf("Payload: %s\n", *payloadPtr)
 	if *originPtr != "" {
-		fmt.Printf("Origin: %s\n", *originPtr)
+		log.Printf("Origin: %s\n", *originPtr)
 	}
 	if *refererPtr != "" {
-		fmt.Printf("Referer: %s\n", *refererPtr)
+		log.Printf("Referer: %s\n", *refererPtr)
 	}
-	fmt.Printf("Threads: %d\n", *threadsPtr)
-	fmt.Printf("Verbose: %t\n", *verbosePtr)
-	fmt.Printf("Aggressive: %t\n", *speedModePtr)
+	log.Printf("Threads: %d\n", *threadsPtr)
+	log.Printf("Verbose: %t\n", *verbosePtr)
+	log.Printf("Aggressive: %t\n", *speedModePtr)
 
 	proxiesList = strings.Split(proxies, "\n")
 
