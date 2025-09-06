@@ -3,15 +3,14 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"encoding/binary"
 	"flag"
 	"fmt"
+	"gopost/src/helpers"
 	"io"
-	"math/rand/v2"
-	"net"
 	"net/http"
 	url2 "net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -19,22 +18,14 @@ import (
 var stop bool = false
 var wg sync.WaitGroup
 
-//go:embed ../proxies.txt
+//go:embed res/proxies.txt
 var proxies string
 var proxiesList []string
 
-func randRange(min, max int) int {
-	return rand.IntN(max-min) + min
-}
-
-func randomIpAddress() string {
-	buf := make([]byte, 4)
-
-	ip := rand.Uint32()
-
-	binary.LittleEndian.PutUint32(buf, ip)
-
-	return net.IP(buf).String()
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }
 
 func SendRandomData(url string, payload string, threadnum int, verbose bool, aggressive bool, origin string, referer string, useragent string) {
@@ -70,7 +61,7 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 		req.Header.Set("accept-language", "en-US,en;q=0.9")
 		req.Header.Set("priority", "u=1, i")
 
-		var proxy = proxiesList[randRange(0, len(proxiesList)-1)]
+		var proxy = proxiesList[helpers.RandomRange(0, len(proxiesList)-1)]
 		if verbose && !aggressive {
 			fmt.Printf("[THREAD #%d] Proxy:>%s\n", threadnum, proxy)
 		}
@@ -98,7 +89,7 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 }
 func main() {
 	urlPtr := flag.String("url", "", "URL to flood with POST requests. This should be the full URL to your endpoint.")
-	payloadPtr := flag.String("payload", "", "Payload to send via POST flood. JSON is preferred unless your endpoint uses an atypical setup.")
+	payloadPtr := flag.String("payload", "", "Path to a payload JSON file to send via POST flooding.")
 	originPtr := flag.String("origin", "", "(Optional) URL to value the origin header with.")
 	refererPtr := flag.String("referer", "", "(Optional) URL to value the referer header with.")
 	uaPtr := flag.String("ua", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", "(Optional) User-Agent to use for POST flooding.")
@@ -118,6 +109,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	absPath, err := filepath.Abs(*payloadPtr)
+	check(err)
+
+	readPayload, err := os.ReadFile(absPath)
+	check(err)
+
 	fmt.Println("GoPOST v1.0.1 starting...")
 	fmt.Printf("URL: %s\n", *urlPtr)
 	fmt.Printf("Payload: %s\n", *payloadPtr)
@@ -135,7 +132,7 @@ func main() {
 
 	for i := 0; i < *threadsPtr; i++ {
 		wg.Add(1)
-		go SendRandomData(*urlPtr, *payloadPtr, i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr, *uaPtr)
+		go SendRandomData(*urlPtr, string(readPayload), i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr, *uaPtr)
 	}
 	wg.Wait()
 }
