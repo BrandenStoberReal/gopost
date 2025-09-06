@@ -97,9 +97,9 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 func main() {
 	urlPtr := flag.String("url", "", "URL to flood with POST requests. This should be the full URL to your endpoint.")
 	payloadPtr := flag.String("payload", "", "Path to a payload JSON file to send via POST flooding.")
-	originPtr := flag.String("origin", "", "(Optional) URL to value the origin header with.")
-	refererPtr := flag.String("referer", "", "(Optional) URL to value the referer header with.")
-	uaPtr := flag.String("ua", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", "(Optional) User-Agent to use for POST flooding.")
+	originPtr := flag.String("origin", "", "URL to populate the origin header with.")
+	refererPtr := flag.String("referer", "", "URL to populate the referer header with.")
+	uaPtr := flag.String("ua", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", "User-Agent to use for POST flooding.")
 	threadsPtr := flag.Int("threads", 16, "Number of goroutines to use.")
 	verbosePtr := flag.Bool("v", false, "Verbose output.")
 	speedModePtr := flag.Bool("a", false, "Do not log anything to console, aka maximum flood mode.")
