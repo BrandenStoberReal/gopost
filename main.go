@@ -23,23 +23,28 @@ var proxiesList []string
 
 func check(e error) {
 	if e != nil {
+
 		log.Fatal(e)
 	}
 }
 
-func SendRandomData(url string, payload string, threadnum int, verbose bool, aggressive bool, origin string, referer string, useragent string) {
+func logThread(num int, msg string) {
+	log.Printf("[THREAD %d]: %s\n", num, msg)
+}
+
+func sendPostDataThreaded(url string, payload string, threadnum int, verbose bool, aggressive bool, origin string, referer string, useragent string) {
 	defer wg.Done()
 	if verbose && !aggressive {
-		log.Printf("[THREAD #%d] Starting...\n", threadnum)
+		logThread(threadnum, "New thread created and starting work.")
 	}
 
 	for {
 		if verbose && !aggressive {
-			log.Printf("[THREAD #%d] URL:>%s\n", threadnum, url)
+			logThread(threadnum, "URL:>"+url)
 		}
 
 		if verbose && !aggressive {
-			log.Printf("[THREAD #%d] JSON:>%s\n", threadnum, payload)
+			logThread(threadnum, "JSON:>"+payload)
 		}
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(payload)))
 		check(err)
@@ -67,7 +72,7 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 		var proxy = proxiesList[helpers.RandomRange(0, len(proxiesList)-1)]
 		proxy = strings.Replace(proxy, "\r", "", -1)
 		if verbose && !aggressive {
-			log.Printf("[THREAD #%d] Proxy:>%s\n", threadnum, proxy)
+			logThread(threadnum, "Proxy:>"+proxy)
 		}
 		proxyUrl, err := url2.Parse(proxy)
 		check(err)
@@ -82,9 +87,10 @@ func SendRandomData(url string, payload string, threadnum int, verbose bool, agg
 		if !aggressive {
 			if verbose {
 				body, _ := io.ReadAll(resp.Body)
-				log.Printf("[THREAD #%d] Response Status: %s, Response Body: %s\n", threadnum, resp.Status, string(body))
+				logThread(threadnum, "Response Status:>"+resp.Status)
+				logThread(threadnum, "Response Body:>"+string(body))
 			} else {
-				log.Printf("[THREAD #%d] Response Status: %s\n", threadnum, resp.Status)
+				logThread(threadnum, "Response Status:>"+resp.Status)
 			}
 		}
 
@@ -137,7 +143,7 @@ func main() {
 
 	for i := 0; i < *threadsPtr; i++ {
 		wg.Add(1)
-		go SendRandomData(*urlPtr, string(readPayload), i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr, *uaPtr)
+		go sendPostDataThreaded(*urlPtr, string(readPayload), i+1, *verbosePtr, *speedModePtr, *originPtr, *refererPtr, *uaPtr)
 	}
 	wg.Wait()
 }
