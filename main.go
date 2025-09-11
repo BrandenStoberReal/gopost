@@ -94,7 +94,7 @@ func main() {
 	threadsPtr := flag.Int("threads", 16, "Number of goroutines to use.")
 	headersPtr := flag.String("headers", "", "Path to a txt file of headers to use. Format should be HEADER_NAME=HEADER_VALUE with newlines. Quotes are not added automatically.")
 	verbosePtr := flag.Bool("v", false, "Verbose output.")
-	speedModePtr := flag.Bool("a", false, "Do not log anything to console, aka maximum flood mode.")
+	speedModePtr := flag.Bool("aggressive", false, "Remove all console logging in order to minimize latency. Not recommended unless you want maximal efficiency.")
 
 	headerLines := make([]string, 0) // Hehe slice
 
