@@ -115,9 +115,19 @@ func main() {
 	readPayload, err := os.ReadFile(absPayloadPath)
 	check(err)
 
+	log.Printf("[INFO] Payload loaded from: %s", absPayloadPath)
+
 	// Headers
 	if *headersPtr != "" {
-		headerLines = strings.Split(*headersPtr, "\n")
+		absHeaderPath, err := filepath.Abs(*headersPtr)
+		check(err)
+
+		headerData, err := os.ReadFile(absHeaderPath)
+		check(err)
+
+		headerLines = strings.Split(string(headerData), "\n")
+
+		log.Printf("[INFO] Headers loaded from: %s", absHeaderPath)
 	}
 
 	log.Println("GoPOST v1.0.1 starting...")
