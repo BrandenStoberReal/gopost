@@ -32,19 +32,19 @@ func logThread(num int, msg string) {
 	log.Printf("[THREAD %d]: %s\n", num, msg)
 }
 
-func sendPostDataThreaded(url string, payload string, threadnum int, verbose bool, aggressive bool, headerLines []string) {
+func sendPostDataThreaded(url string, payload string, threadNum int, verbose bool, aggressive bool, headerLines []string) {
 	defer wg.Done()
 	if verbose && !aggressive {
-		logThread(threadnum, "New thread created and starting work.")
+		logThread(threadNum, "New thread created and starting work.")
 	}
 
 	for {
 		if verbose && !aggressive {
-			logThread(threadnum, "URL:>"+url)
+			logThread(threadNum, "URL:>"+url)
 		}
 
 		if verbose && !aggressive {
-			logThread(threadnum, "JSON:>"+payload)
+			logThread(threadNum, "JSON:>"+payload)
 		}
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(payload)))
 		check(err)
@@ -59,7 +59,7 @@ func sendPostDataThreaded(url string, payload string, threadnum int, verbose boo
 		var proxy = proxiesList[helpers.RandomRange(0, len(proxiesList)-1)]
 		proxy = strings.Replace(proxy, "\r", "", -1)
 		if verbose && !aggressive {
-			logThread(threadnum, "Proxy:>"+proxy)
+			logThread(threadNum, "Proxy:>"+proxy)
 		}
 		proxyUrl, err := url2.Parse(proxy)
 		check(err)
@@ -75,10 +75,10 @@ func sendPostDataThreaded(url string, payload string, threadnum int, verbose boo
 		if !aggressive {
 			if verbose {
 				body, _ := io.ReadAll(resp.Body)
-				logThread(threadnum, "Response Status:>"+resp.Status)
-				logThread(threadnum, "Response Body:>"+string(body))
+				logThread(threadNum, "Response Status:>"+resp.Status)
+				logThread(threadNum, "Response Body:>"+string(body))
 			} else {
-				logThread(threadnum, "Response Status:>"+resp.Status)
+				logThread(threadNum, "Response Status:>"+resp.Status)
 			}
 		}
 
